@@ -1,1 +1,22 @@
-<p>login works!</p>
+<div class="min-h-screen bg-gradient-custom flex items-center justify-center p-6">
+  <div class="bg-white/10 backdrop-blur-2xl rounded-3xl p-12 max-w-md w-full text-center border border-white/20">
+    <h1 class="text-7xl mb-8">Confidential</h1>
+    
+    <h2 class="text-4xl font-bold text-white mb-10">
+      {{ isFirstTime ? 'Crée ton mot de passe maître' : 'Déverrouille ton coffre' }}
+    </h2>
+
+    <input 
+      [(ngModel)]="pwd" 
+      type="password" 
+      placeholder="Mot de passe (min 4 caractères)"
+      class="w-full bg-white/20 rounded-xl px-6 py-5 text-xl text-white placeholder-gray-400 mb-6 focus:outline-none focus:ring-4 focus:ring-purple-500"
+      (keyup.enter)="login()">
+
+    <button 
+      (click)="login()" 
+      class="w-full bg-gradient-to-r from-purple-600 to-pink-600 py-5 rounded-xl text-2xl font-bold hover:scale-105 transition">
+      {{ isFirstTime ? 'Créer & Accéder' : 'Déverrouiller' }}
+    </button>
+  </div>
+</div>
