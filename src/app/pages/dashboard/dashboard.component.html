@@ -1,75 +1,114 @@
 <div class="min-h-screen bg-gradient-custom text-white">
   <!-- Header -->
-  <div class="p-6 border-b border-white/10">
+  <div class="p-6 border-b border-white/10 backdrop-blur-sm">
     <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
       <h1 class="text-4xl font-bold">Mon Stockage Privé</h1>
-      <div class="flex flex-wrap gap-3">
-        <input [(ngModel)]="searchTerm" placeholder="Rechercher..." class="bg-white/20 rounded-xl px-4 py-2">
-        <button (click)="generateQR()" class="bg-purple-600 hover:bg-purple-700 px-5 py-2 rounded-xl">QR Sync</button>
-        <button (click)="createFolder()" class="bg-green-600 hover:bg-green-700 px-5 py-2 rounded-xl">+ Dossier</button>
-        <button (click)="logout()" class="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-xl">Déconnexion</button>
+      <div class="flex flex-wrap gap-3 items-center">
+        <input [(ngModel)]="searchTerm" placeholder="Rechercher..." class="bg-white/20 rounded-xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+        <button (click)="generateQR()" class="bg-purple-600 hover:bg-purple-700 px-5 py-2 rounded-xl font-medium">QR Sync</button>
+        <button (click)="createFolder()" class="bg-green-600 hover:bg-green-700 px-5 py-2 rounded-xl font-medium">+ Dossier</button>
+        <button (click)="logout()" class="bg-red-600 hover:bg-red-700 px-5 py-2 rounded-xl font-medium">Déconnexion</button>
       </div>
     </div>
   </div>
 
   <div class="max-w-7xl mx-auto p-8">
-    <!-- Upload Zone -->
-    <label class="block mb-10 cursor-pointer">
+
+    <!-- Upload -->
+    <label class="block mb-12 cursor-pointer">
       <input type="file" multiple (change)="onFilesSelected($event)" class="hidden">
-      <div class="border-4 border-dashed border-white/30 rounded-3xl p-20 text-center hover:border-white/60 transition">
-        <p class="text-3xl">Drop files here or click to upload</p>
+      <div class="border-4 border-dashed border-white/40 rounded-3xl p-24 text-center hover:border-white/70 transition-all bg-white/5">
+        <p class="text-4xl font-bold mb-4">Drop files here</p>
+        <p class="text-xl opacity-80">ou clique pour sélectionner</p>
       </div>
     </label>
 
-    <!-- QR Code -->
-    <div *ngIf="qrCodeUrl" class="text-center mb-10">
-      <img [src]="qrCodeUrl" alt="QR Sync" class="inline-block w-64 h-64">
-      <p class="mt-4">Scanne avec un autre appareil</p>
+    <!-- QR Sync -->
+    <div *ngIf="qrCodeUrl" class="text-center mb-12 bg-white/10 rounded-3xl p-8">
+      <h3 class="text-2xl mb-4">Scanne ce QR avec un autre appareil</h3>
+      <img [src]="qrCodeUrl" alt="QR Sync" class="inline-block w-72 h-72 border-8 border-white/20 rounded-2xl">
+    </div>
+
+    <!-- Partage -->
+    <div *ngIf="shareLink" class="bg-green-900/70 rounded-2xl p-6 mb-8 text-center">
+      <p class="text-lg break-all whitespace-pre-wrap">{{ shareLink }}</p>
+      <p class="text-sm mt-2 opacity-80">Lien valable 5 minutes</p>
     </div>
 
     <!-- Dossiers -->
-    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-6 mb-12">
-      <div *ngFor="let folder of folders"
-           class="bg-white/10 backdrop-blur rounded-2xl p-8 text-center cursor-pointer hover:bg-white/20 transition"
-           (click)="openFolder(folder.id)">
-        <div class="text-6xl mb-4">Folder</div>
-        <p class="font-bold">{{ folder.name }}</p>
+    <div *ngIf="folders.length > 0" class="mb-12">
+      <h2 class="text-2xl font-bold mb-6">Dossiers</h2>
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-6">
+        <div *ngFor="let folder of folders"
+             class="bg-white/10 backdrop-blur-lg rounded-2xl p-10 text-center cursor-pointer hover:bg-white/20 transition-all group"
+             (click)="openFolder(folder.id)">
+          <div class="text-7xl mb-4">Folder</div>
+          <p class="font-semibold text-lg">{{ folder.name }}</p>
+          <button (click)="$event.stopPropagation(); deleteFolder(folder.id)"
+                  class="mt-3 text-red-400 opacity-0 group-hover:opacity-100 text-sm">
+            Supprimer
+          </button>
+        </div>
       </div>
+    </div>
+
+    <!-- Retour -->
+    <div *ngIf="currentFolder" class="mb-8">
+      <button (click)="back()" class="bg-white/20 hover:bg-white/30 px-6 py-3 rounded-xl">Retour</button>
     </div>
 
     <!-- Fichiers -->
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
-      <div *ngFor="let file of getFilteredFiles()"
-           class="bg-white/10 backdrop-blur rounded-2xl overflow-hidden group relative">
-        <button (click)="deleteFile(file.id)"
-                class="absolute top-2 right-2 bg-red-600 p-2 rounded-full opacity-0 group-hover:opacity-100 z-10">
-          X
-        </button>
-        <div class="h-48 bg-black/50 flex items-center justify-center cursor-pointer"
-             (click)="preview(file)">
-          <span class="text-6xl">File</span>
-        </div>
-        <div class="p-4">
-          <p class="font-bold truncate">{{ file.name }}</p>
-          <p class="text-sm opacity-75">{{ formatSize(file.size) }}</p>
-          <button (click)="shareFile(file)" class="text-blue-400 text-xs">Partager</button>
+    <div *ngIf="getFilteredFiles().length > 0; else noFiles">
+      <h2 class="text-2xl font-bold mb-6">
+        {{ currentFolder ? 'Contenu du dossier' : 'Tous les fichiers' }} ({{ getFilteredFiles().length }})
+      </h2>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-8">
+        <div *ngFor="let file of getFilteredFiles()"
+             class="bg-white/10 backdrop-blur-lg rounded-2xl overflow-hidden group relative shadow-xl hover:shadow-2xl transition-all">
+          <button (click)="deleteFile(file.id)"
+                  class="absolute top-3 right-3 bg-red-600/90 p-2 rounded-full opacity-0 group-hover:opacity-100 z-10">
+            X
+          </button>
+          <div class="h-56 bg-black/40 flex items-center justify-center cursor-pointer"
+               (click)="preview(file)">
+            <div class="text-6xl">File</div>
+          </div>
+          <div class="p-4 bg-gradient-to-t from-black/50">
+            <p class="font-semibold truncate" [title]="file.name">{{ file.name }}</p>
+            <p class="text-sm opacity-75">{{ formatSize(file.size) }}</p>
+            <button (click)="$event.stopPropagation(); shareFile(file)" class="text-blue-400 hover:text-blue-300 text-sm mt-2">
+              Partager
+            </button>
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- Preview Modal -->
-    <div *ngIf="previewUrl" class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-8"
-         (click)="previewUrl = null; previewFile = null">
-      <div class="max-w-5xl max-h-full">
-        <img [src]="previewUrl" *ngIf="previewFile?.type.startsWith('image/')" class="max-w-full max-h-full">
-        <video [src]="previewUrl" controls *ngIf="previewFile?.type.startsWith('video/')" class="max-w-full"></video>
-        <iframe [src]="previewUrl" *ngIf="previewFile?.type.includes('pdf')" class="w-full h-screen"></iframe>
+    <ng-template #noFiles>
+      <div class="text-center py-20">
+        <p class="text-3xl opacity-60">Aucun fichier</p>
+        <p class="mt-4 text-xl opacity-50">Commence par en uploader !</p>
       </div>
-    </div>
+    </ng-template>
+  </div>
 
-    <!-- Share Link -->
-    <div *ngIf="shareLink" class="bg-green-900/50 p-4 rounded mt-8 text-center">
-      <p>{{ shareLink }}</p>
+  <!-- MODAL PREVIEW (100 % sans erreur) -->
+  <div *ngIf="previewUrl" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4" (click)="closePreview()">
+    <div class="relative max-w-6xl max-h-full bg-black rounded-3xl overflow-hidden shadow-2xl" (click)="$event.stopPropagation()">
+      <button (click)="closePreview()" class="absolute top-4 right-6 text-white text-5xl z-10 hover:text-gray-300">&times;</button>
+
+      <img *ngIf="previewFile && previewFile.type.startsWith('image/')" 
+           [src]="previewUrl" class="max-w-full max-h-full object-contain">
+
+      <video *ngIf="previewFile && previewFile.type.startsWith('video/')" 
+             [src]="previewUrl" controls class="max-w-full max-h-full"></video>
+
+      <iframe *ngIf="previewFile && previewFile.type === 'application/pdf'" 
+              [src]="previewUrl" class="w-full h-screen"></iframe>
+
+      <div *ngIf="previewFile && !previewFile.type.startsWith('image/') && !previewFile.type.startsWith('video/') && previewFile.type !== 'application/pdf'"
+           class="text-center text-4xl p-20 text-gray-400">
+        Aperçu non disponible
+      </div>
     </div>
   </div>
 </div>
